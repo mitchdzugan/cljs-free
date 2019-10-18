@@ -193,14 +193,21 @@
 (defui controls
   :<div {:className "controls"} :=
     :<span "Entrants: " :>
+    ;; bind the value of a number input with initial
+    ;; value 8 to the signal num-entrantsS
     :<number 8 {:type "text"} :num-entrantsS:>
     :<span "Bracket Type: " :>
+    ;; bind the value of a select input with initial
+    ;; value :DE to the signal bracket-typeS
     :<select :DE {} #(->> (onvalue %)
                           (frp/fmap keyword)) :=
       :<option {:value :DE} "Double Elim" :>
       :<option {:value :SE} "Single Elim" :>
     :bracket-typeS:>
   :>
+  ;; zip the signals num-entrantsS and bracket-typeS
+  ;; into a single signal containg an object with
+  ;; their values as the elements and return
   let [res (frp/zip-with #(-> {:num-entrants %1
                                :bracket-type %2})
                          num-entrantsS
@@ -208,13 +215,41 @@
   (return res))
 
 (defui app
+  ;; bind the result of controls UI to the signal configS
   :<controls :configS:!>
+  ;; reduce-event takes 3 args and children. The first arg is 
+  ;; an identifier used for later reference. The second is a
+  ;; reducing function that takes the current state, a fired event
+  ;; and returns the updated state based on that event. The
+  ;; third arg is the initial state.
+  ;; 
+  ;; The children are then evaluated and any calls to dom/join-event
+  ;; with this key will cause their fired events to trigger the
+  ;; reducer function and update the state
+  ;; 
+  ;; This state is kept in a signal which can be accessed from any
+  ;; of the children using dom/get-signal key
+  ;; 
+  ;; This reduce-event tracks the set-result list. It handles 2 types
+  ;; of events, a :conj type in which it adds the payload toe he list
+  ;; of set-results and a :reset type that sets the set-results back to
+  ;; an empty list.
   :<reduce-event ::results #(cond
                               (= :conj (:type %2)) (conj %1 (:v %2))
                               (= :reset (:type %2)) []
                               :else %1) [] :=
-    :<dom/join-event ::results (frp/fmap (varg# {:type :reset}) (frp/changed configS)) :>
-    :<dom/get-signal ::results :resultsS:>
+    ;; fires the :reset type event whenever the config (numEntrants/bracketType) changes
+    :<dom/join-event ::results (frp/fmap (varg# {:type :reset}) (frp/changed configS)) :>=
+    ;; extract the ::results signal and bind it to resultsS
+    :<dom/get-signal ::results :resultsS:>=
+    ;; merge the resultsS and configS signals into a single signal value
+    ;; containing them as elements. Then bind the UI function `bracket` to
+    ;; that signal (IE run function `bracket`) with the value of the signal
+    ;; every time it changes.
+    ;;
+    ;; This code compiles to stuff looking like the functions above these commented
+    ;; ones. If you look you'll see another dom/join-event for adding set results
+    ;; when clicking on sets.
     :<bind-signal (frp/zip-with #(merge %1 {:results %2}) configS resultsS) bracket :>
   :>)
 
