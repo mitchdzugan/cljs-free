@@ -5,13 +5,16 @@
 
 body {
   font-family: 'Helvetica Neue', Verdana, Helvetica, Arial, sans-serif;
-  max-width: 600px;
   margin: 0 auto;
-  padding-top: 72px;
+	padding: 2em 2em;
   -webkit-font-smoothing: antialiased;
   font-size: 1.125em;
   color: #333;
   line-height: 1.5em;
+}
+
+#app {
+	font-size: 0.85em;
 }
 
 h1, h2, h3 {
@@ -22,7 +25,8 @@ h1 {
 }
 
 h2 {
-  font-size: 2em
+  font-size: 1.5em;
+	margin: 0.5em 0;
 }
 
 h3 {
@@ -37,3 +41,75 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
+.controls {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-around;
+}
+
+.round {
+	display: flex;
+	flex-direction: column;
+	margin: 0 2rem;
+	min-width: 18rem;
+	max-width: 18rem;
+	position: relative;
+}
+
+.bracket {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+}
+
+.brackets {
+	display: flex;
+	flex-direction: column;
+}
+
+.set {
+	width: 100%;
+	position: absolute;
+	left: 0;
+	transform: translateY(-50%);
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+  background: #dee1df;
+}
+
+.setName {
+	width: 4.5em;
+	text-align: center;
+}
+
+.entrants {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	flex: 1;
+}
+
+.entrant {
+	margin: 0.22222em;
+	background: white;
+	width: 95%;
+	text-align: center;
+	border-radius: 2px;
+	font-weight: bold;
+
+	&.unfilled {
+		font-style: italic;
+		font-weight: normal;
+	}
+
+	&.winner {
+		background: #deffdf;
+	}
+
+	&.loser {
+		background: #ffe1df;
+	}
+}
+

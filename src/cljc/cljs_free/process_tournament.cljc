@@ -9,17 +9,17 @@
             #?(:clj  [cljs-free.macros :refer [varg# whenf deffree fdo deff deffn ffn]]
                :cljs [cljs-free.macros :refer-macros [varg# whenf deffree fdo deff deffn ffn]])))
 
-(deffree process [get-env write-set write-progression set-standing wt1 wt2])
+(deffree process [!get-env write-set write-progression set-standing])
 
 (defn add-progressions [progression-specs get-entrant]
   (->> progression-specs
        (map #(->> (get-entrant %)
                   (progression/progression %)
                   write-progression))
-       libra/of-list))
+       libra/of-list_))
 
 (deffn create-set [path entrants beyond-progression?]
-  env <- (get-env)
+  env <- get-env
   let [{:keys [results-by-path progression-specs-by-round]} env
        progression-specs (get progression-specs-by-round (:round path))
        result (get results-by-path path)
@@ -54,32 +54,27 @@
              :max-progression-round max-progression-round
              :min-progression-round min-progression-round}
         entrant-count (count entrants)
-        standings (->> entrants
-                       (reduce (fn [standings {:keys [seed-id]}]
+        standings (-> #?(:cljs entrants :clj (to-array entrants))
+                      (areduce i standings (transient {})
+                               (let [entrant (nth entrants i)
+                                     seed-id (:seed-id entrant)]
                                  (if (nil? seed-id) standings
                                      (assoc! standings seed-id {:standing entrant-count
-                                                                :final? false})))
-                               (transient {}))
-                       persistent!)
+                                                                :final? false}))))
+                      persistent!)
         interpreter (make-interpreter {write-set (libra/writer :sets)
                                        write-progression (libra/writer :progressions)
                                        set-standing (libra/setter-in
                                                      (varg# [:standings %1])
                                                      (varg# {:standing %2 :final? %3}))
-                                       get-env (libra/reader (varg# env))
-                                       wt1 (libra/writer :wt1)
-                                       wt2 (libra/writer :wt2)
-                                       }
+                                       get-env (libra/reader (varg# env))}
                                       {:standings standings})
         res (libra/interpret interpreter generator)]
     (get-state res)))
 
 
-(defn gnow []
-  #?(:clj 0 :cljs (.now js/Date)))
-
 (deff single-elim
-  env <- (get-env)
+  env <- get-env
   let [{:keys [entrants
                max-progression-round
                progression-specs-by-round]} env
@@ -116,7 +111,7 @@
 (def lf-set-path (set-path/elimination -1 0))
 
 (deff double-elim
-  env <- (get-env)
+  env <- get-env
   let [{:keys [standings progressions] winners-sets :sets} (make-pool-priv env single-elim)
        winners-sets-by-path (libra/index-by :path winners-sets)
        max-depth (->> winners-sets
@@ -155,28 +150,28 @@
                                     (or layer1-entrant (get-drop-path-entrant (if needs-set0? next-drop-path0 next-drop-path1)))]]
                      next-entrant <- (create-set layer1-path entrants false)
                      (return (assoc res :entrant next-entrant)))]
-  (->> winners-sets (map write-set) libra/of-list)
+  (->> winners-sets (map write-set) libra/of-list_)
   (->> standings
        seq
        (map (fn [[seed-id {:keys [standing]}]]
               (set-standing seed-id
                             (max 2 (inc (* 2 (dec standing))))
                             false)))
-       libra/of-list)
+       libra/of-list_)
   expandl <- (f#expand 0 0 0)
-  [lf-entrant (:entrant expandl)
-   wf-entrant (->> wf-set-path
-                   (get winners-sets-by-path)
-                   :winner)
-   gf-entrants [wf-entrant lf-entrant]]
+  let [lf-entrant (:entrant expandl)
+       wf-entrant (->> wf-set-path
+                       (get winners-sets-by-path)
+                       :winner)
+       gf-entrants [wf-entrant lf-entrant]]
   gf-winner <- (create-set (set-path/grands) gf-entrants false)
   (not (entrant/filled? gf-winner)) --> (return)
   [reset? (not (= gf-winner wf-entrant))]
   gfr-winner <- (whenf reset?
                        (create-set (set-path/grands-reset) gf-entrants false))
-  [done? (or (and (not reset?)
-                  (entrant/filled? gf-winner))
-             (entrant/filled? gfr-winner))]
+  let [done? (or (and (not reset?)
+                      (entrant/filled? gf-winner))
+                 (entrant/filled? gfr-winner))]
   (not done?) --> (return)
   [opposite {wf-entrant lf-entrant lf-entrant wf-entrant}
    winner (if reset? gfr-winner gf-winner)
@@ -186,13 +181,15 @@
   (return))
 
 (defn make-pool [pool-config]
-  (->> (:type pool-config)
-       (get {:DE double-elim :SE single-elim})
-       (make-pool-priv (update pool-config :entrants #(if (vector? %) % (vec %))))))
+  (println (str "building bracket of Size: " (-> pool-config :entrants count) "..."))
+  (time
+   (->> (:type pool-config)
+        (get {:DE double-elim :SE single-elim})
+        (make-pool-priv (update pool-config :entrants #(if (vector? %) % (vec %)))))))
 
 (defn t []
-  (make-pool {:entrants (map #(entrant/seed %) (range 50000))
-              #_ [(entrant/seed 0) (entrant/seed 1) (entrant/seed 2) (entrant/seed 3)
+  (make-pool {:entrants (map #(entrant/seed %) (range 10000))
+              #_[(entrant/seed 0) (entrant/seed 1) (entrant/seed 2) (entrant/seed 3)
                          (entrant/seed 4) (entrant/seed 5) (entrant/seed 6) (entrant/seed 7)]
               :results [
                         ; (set-result/result nil (set-path/elimination 3 3) 0)

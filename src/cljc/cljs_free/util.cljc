@@ -25,3 +25,7 @@
   #?(:clj (partial println)
      :cljs (fn [& args] (apply (aget js/console "log") args))))
 
+(defn parse-int [s]
+  #?(:cljs (let [res (js/parseInt s 10)]
+             (if (js/Number.isNaN res) nil res))
+     :clj nil))

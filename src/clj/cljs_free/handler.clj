@@ -2,7 +2,6 @@
   (:require
    [reitit.ring :as reitit-ring]
    [cljs-free.middleware :refer [middleware]]
-   [cljs-free.process-tournament]
    [hiccup.page :refer [include-js include-css html5]]
    [config.core :refer [env]]))
 

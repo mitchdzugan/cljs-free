@@ -85,20 +85,32 @@
         int-name (symbol (str "make-interpreter"))
         state-name (symbol (str "get-state"))
         fs (map (fn [func]
-                  (let [f-sym (symbol (.toString func))]
-                    `(defn ~f-sym [& args#]
-                       (fn []
-                         [true
-                          false
-                          nil
-                          nil
-                          (fn [i# with-overrides#]
-                            ((get (:funcs i#) ['~sym ~f-sym])
-                             {:next (partial next-from-i-and-sym i# '~sym)
-                              :interpret with-overrides#
-                              :interpret-with-overrides with-overrides#
-                              :args args#
-                              :state @(get (:states i#) '~sym)}))]))))
+                  (let [func-name (.toString func)
+                        special? (fn [c] (get #{\! \-} c))
+                        special-chars (take-while special? func-name)
+                        private? (some #(= \- %) special-chars)
+                        fun? (not (some #(= \! %) special-chars))
+                        func-name (->> func-name (drop-while special?) (apply str))
+                        f-sym (symbol func-name)
+                        args-sym (if fun? (gensym "args") nil)
+                        definition `(~(if fun? 'defn 'def)
+                                     ~@(if private?
+                                         [(with-meta f-sym (assoc (meta f-sym) :private true))]
+                                         [f-sym])
+                                     ~@(if fun? [`[& ~args-sym]] []))
+                        ]
+                    `(~@definition
+                       (fn [o#]
+                         (let [evalf#
+                               (fn [i# with-overrides#]
+                                 ((get (:funcs i#) ['~sym ~f-sym])
+                                  {:next (partial next-from-i-and-sym i# '~sym)
+                                   :interpret with-overrides#
+                                   :interpret-with-overrides with-overrides#
+                                   :args ~args-sym
+                                   :state @(get (:states i#) '~sym)}))]
+                           (aset o# 1 evalf#)
+                           (aset o# 0 :func))))))
                 funcs)]
     `(do
        (def ~name '~sym)

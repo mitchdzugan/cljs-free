@@ -16,6 +16,8 @@
                   :scope "provided"]
                  [metosin/reitit "0.3.7"]
                  [pez/clerk "1.0.0"]
+                 [funcool/beicon "5.0.0"]
+                 [libra "0.1.0-SNAPSHOT"]
                  [venantius/accountant "0.2.4"
                   :exclusions [org.clojure/tools.reader]]]
 
