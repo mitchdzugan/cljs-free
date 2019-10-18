@@ -239,9 +239,9 @@
                               (= :reset (:type %2)) []
                               :else %1) [] :=
     ;; fires the :reset type event whenever the config (numEntrants/bracketType) changes
-    :<dom/join-event ::results (frp/fmap (varg# {:type :reset}) (frp/changed configS)) :>=
+    :<dom/join-event ::results (frp/fmap (varg# {:type :reset}) (frp/changed configS)) :>
     ;; extract the ::results signal and bind it to resultsS
-    :<dom/get-signal ::results :resultsS:>=
+    :<dom/get-signal ::results :resultsS:>
     ;; merge the resultsS and configS signals into a single signal value
     ;; containing them as elements. Then bind the UI function `bracket` to
     ;; that signal (IE run function `bracket`) with the value of the signal
